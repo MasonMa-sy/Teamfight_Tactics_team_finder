@@ -1,0 +1,52 @@
+[
+ {
+  "id": 1,
+  "class": "Shapeshifter",
+  "number": "3"
+ },
+ {
+  "id": 2,
+  "class": "Assassin",
+  "number": "3/6"
+ },
+ {
+  "id": 3,
+  "class": "Sorcerer",
+  "number": "3/6"
+ },
+ {
+  "id": 4,
+  "class": "Ranger",
+  "number": "2/4"
+ },
+ {
+  "id": 5,
+  "class": "Knight",
+  "number": "2/4/6"
+ },
+ {
+  "id": 6,
+  "class": "Gunslinger",
+  "number": "2/4"
+ },
+ {
+  "id": 7,
+  "class": "Guardian",
+  "number": "2"
+ },
+ {
+  "id": 8,
+  "class": "Elementalist",
+  "number": "3"
+ },
+ {
+  "id": 9,
+  "class": "Brawler",
+  "number": "2/4"
+ },
+ {
+  "id": 10,
+  "class": "Blademaster",
+  "number": "3/6"
+ }
+]

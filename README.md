@@ -16,6 +16,10 @@ not dfs() this team.
 #### Time and Memory used
 4 no prune, mem 20+MB, evaluate 8.  
 4 first prune, time 1:19, mem 24.51M, evaluate 8.  
-5 first prune, time , mem 96.46M, evaluate .a
+5 first prune, time , mem 96.46M, evaluate .a  
+
+#### Thanks
+Thanks to LNTech, I got hero data from
+(https://github.com/LNTech/TeamfightTactics_Simulator).
 
 

@@ -1,0 +1,54 @@
+[
+ {
+  "id": 1,
+  "origin": "Demon"
+ },
+ {
+  "id": 2,
+  "origin": "Wild"
+ },
+ {
+  "id": 3,
+  "origin": "Dragon"
+ },
+ {
+  "id": 4,
+  "origin": "Ninja"
+ },
+ {
+  "id": 5,
+  "origin": "Imperial"
+ },
+ {
+  "id": 6,
+  "origin": "Void"
+ },
+ {
+  "id": 7,
+  "origin": "Pirate"
+ },
+ {
+  "id": 8,
+  "origin": "Phantom"
+ },
+ {
+  "id": 9,
+  "origin": "Yordle"
+ },
+ {
+  "id": 10,
+  "origin": "Glacial"
+ },
+ {
+  "id": 11,
+  "origin": "Noble"
+ },
+ {
+  "id": 12,
+  "origin": "Robot"
+ },
+ {
+  "id": 13,
+  "origin": "Exile"
+ }
+]
