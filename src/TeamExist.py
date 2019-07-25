@@ -1,27 +1,34 @@
 
 
 class TeamExist:
-    def __init__(self, config, team):
+    def __init__(self, config, team, i_or_c='init'):
+        """
+
+        :param config:
+        :param team:
+        :param type: 'init' or 'copy'
+        """
         self.classes = {}
         self.origins = {}
         self.eva_classes = {}
         self.eva_origins = {}
-        self.classes.update(config.classes_dict)
-        self.origins.update(config.origins_dict)
-        self.eva_classes.update(config.classes_dict)
-        self.eva_origins.update(config.origins_dict)
-        self.to0(self.classes)
-        self.to0(self.origins)
-        self.to0(self.eva_classes)
-        self.to0(self.eva_origins)
         self.team = set()
-        self.team.update(team)
         self.evaluate = 0
-        if len(team) > 0:
-            self.get_full_association(config)
-            # no need to evaluate team
-            # self.evaluate_association()
-            # self.evaluate_team()
+        if i_or_c == 'init':
+            self.classes.update(config.classes_dict)
+            self.origins.update(config.origins_dict)
+            self.eva_classes.update(config.classes_dict)
+            self.eva_origins.update(config.origins_dict)
+            self.to0(self.classes)
+            self.to0(self.origins)
+            self.to0(self.eva_classes)
+            self.to0(self.eva_origins)
+            self.team.update(team)
+            if len(team) > 0:
+                self.get_full_association(config)
+                # no need to evaluate team
+                # self.evaluate_association()
+                # self.evaluate_team()
 
     def __eq__(self, other):
         if len(self.team) != len(other.team):
@@ -102,7 +109,13 @@ class TeamExist:
         return candidates.difference(self.team)
 
     def deepcopy(self, config):
-        team_exist = TeamExist(config, self.team)
+        team_exist = TeamExist(config, self.team, 'copy')
+        team_exist.classes.update(self.classes)
+        team_exist.origins.update(self.origins)
+        team_exist.eva_classes.update(self.eva_classes)
+        team_exist.eva_origins.update(self.eva_origins)
+        team_exist.team.update(self.team)
+        team_exist.evaluate = self.evaluate
         return team_exist
 
     def __str__(self):

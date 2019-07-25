@@ -1,5 +1,9 @@
 import datetime
 import json
+import threading
+import multiprocessing
+
+import numpy as np
 
 from src.TeamExist import TeamExist
 
@@ -38,6 +42,25 @@ class Config:
     def to_set(self, dict_a):
         for a in dict_a.keys():
             dict_a[a] = set()
+
+
+class BFSThread(threading.Thread):
+    def __init__(self, candidates, team_temp, queue, config):
+        threading.Thread.__init__(self)
+        self.candidates = candidates
+        self.team_temp = team_temp
+        self.queue = queue
+        self.config = config
+
+    def run(self):
+        for candidate in self.candidates:
+            print('%s    %d\n%s  %d' % (self.team_temp.team, len(self.queue), candidate, len(self.team_temp.team)))
+            team_temp2 = self.team_temp.deepcopy(self.config)
+            team_temp2.add_hero(candidate, self.config)
+            # to prune
+            if team_temp2.evaluate > int(len(team_temp2.team) / 2 - 1):
+                if team_temp2 not in self.queue:
+                    self.queue.append(team_temp2)
 
 
 def read_from_json(file):
@@ -138,6 +161,7 @@ def dfs(config, teams, team_exist, team_number=9):
     else:
         candidates = team_exist.find_candidate(config)
         for candidate in candidates:
+            print('%s\n%s  %d' % (team_exist.team, candidate, len(team_exist.team)))
             team_exist1 = team_exist.deepcopy(config)
             team_exist1 = team_exist1.add_hero(candidate, config)
             # to Prune
@@ -145,19 +169,176 @@ def dfs(config, teams, team_exist, team_number=9):
                 dfs(config, teams, team_exist1, team_number)
 
 
+def bfs(config, teams, team_exist, prune, team_number=9):
+    queue = []
+    if len(team_exist.team) == 0:
+        for hero in config.heroes_dict.keys():
+            team_temp = TeamExist(config, set())
+            team_temp.add_hero(hero, config)
+            queue.append(team_temp)
+        delete_team_len = 1
+    else:
+        delete_team_len = len(team_exist.team)
+        queue.append(team_exist)
+    index_now = 0
+    while index_now < len(queue):
+        print("%d   %d" % (index_now, delete_team_len))
+        team_temp = queue[index_now].deepcopy(config)
+        if len(team_temp.team) > delete_team_len:
+            delete_team_len += 1
+            queue = queue[index_now:]
+            index_now = 0
+        if len(team_temp.team) == team_number:
+            teams.append(team_temp)
+            index_now += 1
+            continue
+        candidates = team_temp.find_candidate(config)
+        for candidate in candidates:
+            print('%s    %d\n%s  %d' % (team_temp.team, len(queue), candidate, len(team_temp.team)))
+            team_temp2 = team_temp.deepcopy(config)
+            team_temp2.add_hero(candidate, config)
+            # to prune-1
+            if prune == 'prune-1':
+                if team_temp2.evaluate > int(len(team_temp2.team) / 2 - 1):
+                    if team_temp2 not in queue:
+                        queue.append(team_temp2)
+            if prune == 'prune-2':
+                if team_temp2.evaluate >= int(len(team_temp2.team)):
+                    if team_temp2 not in queue:
+                        queue.append(team_temp2)
+        index_now += 1
+
+
+def bfs_parallel(config, teams, team_exist, team_number=9):
+    """
+    cpython can not parallel because of GIL.
+    The time cost is not reduce.
+    :param config:
+    :param teams:
+    :param team_exist:
+    :param team_number:
+    :return:
+    """
+    queue = []
+    if len(team_exist.team) == 0:
+        for hero in config.heroes_dict.keys():
+            team_temp = TeamExist(config, set())
+            team_temp.add_hero(hero, config)
+            queue.append(team_temp)
+        delete_team_len = 1
+    else:
+        delete_team_len = len(team_exist.team)
+        queue.append(team_exist)
+    index_now = 0
+    while index_now < len(queue):
+        print("%d   %d" % (index_now, delete_team_len))
+        team_temp = queue[index_now].deepcopy(config)
+        if len(team_temp.team) > delete_team_len:
+            delete_team_len += 1
+            queue = queue[index_now:]
+            index_now = 0
+        if len(team_temp.team) == team_number:
+            teams.append(team_temp)
+            index_now += 1
+            continue
+        candidates = team_temp.find_candidate(config)
+        candidates = list(candidates)
+        bfs_thread1 = BFSThread(candidates[:int(len(candidates)/2)], team_temp, queue, config)
+        bfs_thread2 = BFSThread(candidates[int(len(candidates)/2):], team_temp, queue, config)
+        bfs_thread1.start()
+        bfs_thread2.start()
+        bfs_thread1.join()
+        bfs_thread2.join()
+        index_now += 1
+
+
+def dp_k(config, team_number=9, team_count=100):
+    """
+    from: https://blog.csdn.net/creat2012/article/details/9469873
+    It could not find the best solution. This question can not be divided into sub-questions.
+    """
+    dp = np.zeros([team_number+1, team_count+1])
+    teams = [[TeamExist(config, set()) for col in range(team_count+1)] for row in range(team_number+1)]
+    a = np.zeros([team_count+2])
+    b = np.zeros([team_count+2])
+    team_temp_a = [d for d in range(0, team_count + 2)]
+    team_temp_b = [d for d in range(0, team_count + 2)]
+    for i in config.heroes_dict.keys():
+        for j in range(team_number, 0, -1):
+            for d in range(1, team_count+1):
+                team_temp = teams[j-1][d].deepcopy(config)
+                team_temp.add_hero(i, config)
+                team_temp_a[d] = team_temp
+                a[d] = dp[j-1][d] + team_temp.evaluate
+                team_temp = teams[j][d].deepcopy(config)
+                team_temp_b[d] = team_temp
+                team_temp_b[d].evaluate_association(config)
+                team_temp_b[d].evaluate_team()
+                b[d] = dp[j][d]
+            a[team_count+1] = b[team_count+1] = -1
+            x = y = z = 1
+            while z <= team_count and (x <= team_count or y <= team_count):
+                if a[x] > b[y]:
+                    dp[j][z] = a[x]
+                    teams[j][z] = team_temp_a[x]
+                    x += 1
+                else:
+                    dp[j][z] = b[y]
+                    teams[j][z] = team_temp_b[y]
+                    y += 1
+                if dp[j][z] != dp[j][z-1]:
+                    z += 1
+    print(dp)
+    return teams[team_number]
+
+
+def dp_best(config, team_number=9):
+    dp = np.zeros([len(config.heroes_dict.keys()), team_number+1])
+    teams = [[TeamExist(config, set()) for col in range(team_number+1)] for row in range(len(
+        config.heroes_dict.keys())+1)]
+    for i in range(0, len(config.heroes_dict.keys())):
+        for j in range(team_number, 0, -1):
+            team_temp = teams[i-1][j-1].deepcopy(config)
+            team_temp.add_hero(list(config.heroes_dict.keys())[i], config)
+            if dp[i-1][j] > dp[i-1][j-1] + team_temp.evaluate:
+                dp[i][j] = dp[i-1][j]
+                teams[i][j] = teams[i-1][j].deepcopy(config)
+                teams[i][j].evaluate_association(config)
+                teams[i][j].evaluate_team()
+            else:
+                dp[i][j] = dp[i-1][j-1] + team_temp.evaluate
+                teams[i][j] = team_temp
+    print(dp[len(config.heroes_dict.keys())-1])
+    return teams[len(config.heroes_dict.keys())-1]
+
+
 def main():
     # data_processing()
+    method = 'bfs'
+    team_number = 5
+    prune = 'prune-2'
     start = datetime.datetime.now()
     heroes, classes, origins = data_read()
     config = Config(heroes, classes, origins)
-    teams = []
-    team_exist = TeamExist(config, set())
-    dfs(config, teams, team_exist, 5)
-    teams.sort(key=lambda x: x.evaluate, reverse=True)
+    if method == 'dfs' or method == 'bfs' or 'bfs_parallel':
+        teams = []
+        team_exist = TeamExist(config, set())
+        if method == 'dfs':
+            dfs(config, teams, team_exist, team_number)
+        if method == 'bfs':
+            bfs(config, teams, team_exist, prune, team_number)
+        if method == 'bfs_parallel':
+            bfs_parallel(config, teams, team_exist, team_number)
+        teams.sort(key=lambda x: x.evaluate, reverse=True)
+    if method == 'dp_k':
+        team_count = 100
+        teams = dp_k(config, team_number, team_count)
+    if method == 'dp_best':
+        teams = dp_best(config, 4)
     teams_json = []
     for team in teams:
         teams_json.append(team.to_json())
-    file = '../res/result_prune.json'
+    file = '../result/result_%s_%d_%s.json' % (method, team_number, prune)
     write_to_json(file, teams_json)
     end = datetime.datetime.now()
     print(end - start)
